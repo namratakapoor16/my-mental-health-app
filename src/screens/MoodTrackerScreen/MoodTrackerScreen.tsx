@@ -1,5 +1,5 @@
 // src/screens/MoodTrackerScreen.tsx
-import React from "react";
+import React, {useState} from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator
 
 } from "react-native";
+import Toast from "../../components/UI/Toast";
 import { LineChart } from "react-native-chart-kit";
 import { useQueryClient } from "@tanstack/react-query"; 
 import Layout from "../../components/UI/layout";
@@ -36,6 +37,8 @@ const MoodTrackerScreen = () => {
 
   const [current, setCurrent] = React.useState<number | null>(null);
   const [note, setNote] = React.useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
 
   //const { width } = useWindowDimensions();
 
@@ -47,8 +50,8 @@ const MoodTrackerScreen = () => {
 
   const handleLogMood = async () => {
     if (!current) {
-      alert('Please select a mood first');
-       return;
+      setToast({ message: "Please select a mood first", type: "error" });
+      return;
     }
     try {
       console.log('Logging mood:', {score: current, note});
@@ -60,10 +63,10 @@ const MoodTrackerScreen = () => {
 
       //Invalidate queries to refetch
       queryClient.invalidateQueries({queryKey: ["mood", "history", token] });
-      alert('Mood logged successfully');
+      setToast({ message: "Mood logged successfully!", type: "success" });
     } catch (err) {
       console.error("Error logging mood:", err);
-      alert('Failed to log mood. Please try again');
+      setToast({ message: "Failed to log mood. Please try again", type: "error" });
     }
   };
 

@@ -12,6 +12,7 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import Toast from "../../components/UI/Toast";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import Layout from "../../components/UI/layout";
 import { Button } from "../../components/UI/Button";
@@ -41,6 +42,7 @@ const JournalingScreen = () => {
   const logMutation = useLogJournal(token);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const handleSave = () => {
     if (!draft.trim()) return;
@@ -49,10 +51,13 @@ const JournalingScreen = () => {
       {
         onSuccess: () => {
           clearDraft();
-          Alert.alert("Success", "Journal entry added successfully");
+          setToast({ message: "Journal entry saved!", type: "success" });
+        },
+        onError: () => {
+          setToast({ message: "Failed to save entry. Please try again", type: "error" });
         },
       }
-    );
+    );         
   };
 
   const getSentimentColor = (sentiment?: number) => {
@@ -161,6 +166,12 @@ const JournalingScreen = () => {
       title="Journaling"
       onNavigate={(screen) => navigation.navigate(screen as never)}
     >
+       <Toast
+        message={toast?.message || ""}
+        type={toast?.type || "success"}
+        visible={!!toast}
+        onHide={() => setToast(null)}
+      />
       <ScrollView
         style={[styles.scrollContainer, { backgroundColor: colors.background }]}
         contentContainerStyle={{ paddingBottom: SPACING.lg }}
