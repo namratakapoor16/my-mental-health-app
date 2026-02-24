@@ -55,6 +55,22 @@ export const useGoogleLogin = () => {
   });
 };
 
+//Apple login //
+
+type AppleLoginPayload = { identityToken: string; userName?: string | null; timezone?: string };
+
+export const useAppleLogin = () => {
+  return useMutation({
+    mutationFn: async ({ identityToken, userName, timezone }: AppleLoginPayload) => {
+      if (!getApiService) throw new Error("API Service not initialized");
+      console.log("[useAppleLogin] Attempting Apple auth");
+      const { token, userId } = await getApiService().appleAuth(identityToken, userName, timezone);
+      console.log("[useAppleLogin] Apple auth response received");
+      return { token, userId };
+    },
+  });
+};
+
 // =====================
 // Google Code Exchange mutation hook
 // =====================

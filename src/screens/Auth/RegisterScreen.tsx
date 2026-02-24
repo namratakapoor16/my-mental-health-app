@@ -16,7 +16,8 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
-import { useRegister, useGoogleLogin } from "../../api/hooks";
+import * as AppleAuthentication from "expo-apple-authentication";
+import { useRegister, useGoogleLogin, useAppleLogin } from "../../api/hooks";
 import { useAuth } from "../../context/AuthContext";
 import { showAlert } from "../../utils/alert";
 import { useNavigation } from "@react-navigation/native";
@@ -106,8 +107,10 @@ const RegisterScreen: React.FC = () => {
 
   const registerMutation = useRegister();
   const googleLoginMutation = useGoogleLogin();
+  const appleLoginMutation = useAppleLogin();
   const loading = registerMutation.status === "pending";
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -192,6 +195,71 @@ const RegisterScreen: React.FC = () => {
       }
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  // Native Apple Sign-In (iOS only)
+  const handleAppleSignUp = async () => {
+    try {
+      setAppleLoading(true);
+      console.log("[RegisterScreen] Starting Apple Sign-In");
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log("[RegisterScreen] Apple Sign-In credential received");
+
+      const identityToken = credential.identityToken;
+      if (!identityToken) {
+        showAlert("Error", "Apple sign-up failed (no identity token).");
+        return;
+      }
+
+      // Apple only sends the user's name on the FIRST sign-in
+      const fullName = credential.fullName;
+      let userName: string | null = null;
+      if (fullName) {
+        const parts = [fullName.givenName, fullName.familyName].filter(Boolean);
+        userName = parts.length > 0 ? parts.join(" ") : null;
+      }
+
+      console.log("[RegisterScreen] Sending Apple token to backend...");
+      const timezone = getUserTimezone();
+      const result = await appleLoginMutation.mutateAsync({
+        identityToken,
+        userName,
+        timezone,
+      });
+      console.log("[RegisterScreen] Backend result:", JSON.stringify(result));
+
+      if (!result?.token) {
+        showAlert("Error", "Sign-up succeeded but no token was returned.");
+        return;
+      }
+
+      const decoded: any = jwtDecode(result.token);
+      console.log("[RegisterScreen] Decoded JWT keys:", Object.keys(decoded));
+      const userId = decoded.user_id || decoded.sub || "";
+
+      await signInWithToken(result.token, userId);
+      console.log("[RegisterScreen] Apple sign-up complete!");
+
+      registerDeviceForNotifications().catch((e) =>
+        console.warn("[RegisterScreen] Notification registration failed:", e)
+      );
+    } catch (error: any) {
+      console.error("[RegisterScreen] Apple sign-up error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      if (error.code === "ERR_REQUEST_CANCELED") {
+        console.log("[RegisterScreen] Apple sign-up cancelled by user");
+      } else {
+        showAlert("Error", `Apple sign-up failed: ${error?.message || "Unknown error"}`);
+      }
+    } finally {
+      setAppleLoading(false);
     }
   };
 
@@ -458,6 +526,17 @@ const RegisterScreen: React.FC = () => {
                   </View>
                 )}
               </TouchableOpacity>
+
+              {/* Apple Sign Up - iOS only */}
+              {Platform.OS === "ios" && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_UP}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={12}
+                  style={styles.appleButton}
+                  onPress={handleAppleSignUp}
+                />
+              )}
             </>
           )}
 
@@ -674,6 +753,11 @@ const styles = StyleSheet.create({
     color: "#333",
     fontWeight: "600",
     fontSize: 16,
+  },
+  appleButton: {
+    width: "100%",
+    height: 50,
+    marginBottom: 16,
   },
   signInLinkContainer: {
     flexDirection: "row",

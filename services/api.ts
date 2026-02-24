@@ -65,6 +65,7 @@ export interface ApiService {
   // ---------- Google OAuth ----------
   googleAuth(idToken: string, timezone?: string): Promise<LoginResponse>;
   googleCodeExchange(code: string, codeVerifier: string, redirectUri: string, timezone?: string): Promise<LoginResponse>;
+  appleAuth(identityToken: string, userName?: string | null, timezone?: string): Promise<LoginResponse>;
   requestPasswordReset(email: string): Promise<{ status: string; message: string; dev_reset_token?: string }>;
   resetPassword(token: string, newPassword: string): Promise<{ status: string; message: string }>;
 
@@ -454,6 +455,20 @@ export const realApiService: ApiService = {
       timezone: timezone || "UTC",
     });
     console.log('[API] Google code exchange successful');
+    return {
+      token: data.access_token,
+      userId: "",
+    };
+  },
+
+  async appleAuth(identityToken: string, userName?: string | null, timezone?: string): Promise<LoginResponse> {
+    console.log('[API] Apple auth attempt');
+    const { data } = await apiClient.post("/api/auth/apple", {
+      identity_token: identityToken,
+      user_name: userName || null,
+      timezone: timezone || "UTC",
+    });
+    console.log('[API] Apple auth successful');
     return {
       token: data.access_token,
       userId: "",

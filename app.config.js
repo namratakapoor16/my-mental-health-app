@@ -19,6 +19,7 @@ module.exports = {
       supportsTablet: true,
       icon: "./assets/bodhira_ios_icon_cream.png",
       googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
+      usesAppleSignIn: true,
       infoPlist: {
         ITSAppUsesNonExemptEncryption: true
       }
@@ -64,6 +65,7 @@ module.exports = {
           iosUrlScheme: "com.googleusercontent.apps.499568966110-lmlt1q27tucbc1jfe8r903lerec6u6uu"
         }
       ],
+      "expo-apple-authentication",
     ],
     extra: {
       eas: {

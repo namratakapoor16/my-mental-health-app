@@ -16,7 +16,8 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useAuth } from "../../context/AuthContext";
-import { useLogin, useGoogleLogin } from "../../api/hooks";
+import * as AppleAuthentication from "expo-apple-authentication";
+import { useLogin, useGoogleLogin, useAppleLogin } from "../../api/hooks";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/AppNavigator";
@@ -78,6 +79,8 @@ export default function LoginScreen() {
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const appleLoginMutation = useAppleLogin();
+  const [appleLoading, setAppleLoading] = useState(false);
 
   // Native Google Sign-In using Google Identity Services SDK
   const handleGoogleSignIn = async () => {
@@ -197,6 +200,72 @@ export default function LoginScreen() {
     }
   };
 
+  // Native Apple Sign-In (iOS only)
+  const handleAppleSignIn = async () => {
+    try {
+      setAppleLoading(true);
+      console.log("[LoginScreen] Starting Apple Sign-In");
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log("[LoginScreen] Apple Sign-In credential received");
+
+      const identityToken = credential.identityToken;
+      if (!identityToken) {
+        Alert.alert("Error", "Apple sign-in failed (no identity token).");
+        return;
+      }
+
+      // Apple only sends the user's name on the FIRST sign-in
+      const fullName = credential.fullName;
+      let userName: string | null = null;
+      if (fullName) {
+        const parts = [fullName.givenName, fullName.familyName].filter(Boolean);
+        userName = parts.length > 0 ? parts.join(" ") : null;
+      }
+
+      console.log("[LoginScreen] Sending Apple token to backend...");
+      const timezone = getUserTimezone();
+      const result = await appleLoginMutation.mutateAsync({
+        identityToken,
+        userName,
+        timezone,
+      });
+      console.log("[LoginScreen] Backend result:", JSON.stringify(result));
+
+      if (!result?.token) {
+        Alert.alert("Error", "Sign-in succeeded but no token was returned.");
+        return;
+      }
+
+      const decoded: any = jwtDecode(result.token);
+      console.log("[LoginScreen] Decoded JWT keys:", Object.keys(decoded));
+      const userId = decoded.user_id || decoded.sub || "";
+
+      await signInWithToken(result.token, userId);
+      console.log("[LoginScreen] Apple sign-in complete!");
+
+      registerDeviceForNotifications().catch((e) =>
+        console.warn("[LoginScreen] Notification registration failed:", e)
+      );
+    } catch (error: any) {
+      console.error("[LoginScreen] Apple sign-in error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      if (error.code === "ERR_REQUEST_CANCELED") {
+        console.log("[LoginScreen] Apple sign-in cancelled by user");
+      } else {
+        Alert.alert("Error", `Apple sign-in failed: ${error?.message || "Unknown error"}`);
+      }
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
+
   const handleSubmit = async () => {
     try {
       console.log("[LoginScreen] handleSubmit called with:", email, password);
@@ -215,8 +284,8 @@ export default function LoginScreen() {
   };
 
   const loading = loginMutation.status === "pending";
-  const hasError = loginMutation.status === "error" || googleLoginMutation.status === "error";
-  const error = loginMutation.error || googleLoginMutation.error;
+  const hasError = loginMutation.status === "error" || googleLoginMutation.status === "error" || appleLoginMutation.status === "error";
+  const error = loginMutation.error || googleLoginMutation.error || appleLoginMutation.status === "error";
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#EDE4DB" }}>
@@ -373,6 +442,16 @@ export default function LoginScreen() {
                   </View>
                 )}
               </TouchableOpacity>
+              {/* Apple Sign In - iOS only */}
+              {Platform.OS === "ios" && (
+                <AppleAuthentication.AppleAuthenticationButton
+                  buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                  buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+                  cornerRadius={12}
+                  style={styles.appleButton}
+                  onPress={handleAppleSignIn}
+                />
+              )}
             </>
           )}
 
@@ -572,6 +651,11 @@ const styles = StyleSheet.create({
     color: "#333",
     fontWeight: "600",
     fontSize: 16,
+  },
+  appleButton: {
+    width: "100%",
+    height: 50,
+    marginBottom: 20,
   },
   privacyText: {
     fontSize: 12,
