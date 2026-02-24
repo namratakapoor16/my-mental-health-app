@@ -21,7 +21,7 @@ module.exports = {
       googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
       usesAppleSignIn: true,
       infoPlist: {
-        ITSAppUsesNonExemptEncryption: true
+        ITSAppUsesNonExemptEncryption: false
       }
     },
     android: {
