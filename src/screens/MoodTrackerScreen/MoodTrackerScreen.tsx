@@ -76,6 +76,12 @@ const MoodTrackerScreen = () => {
 
   return (
     <Layout title="Mood Tracker" onNavigate={(screen) => navigation.navigate(screen as never)}>
+       <Toast
+        message={toast?.message || ""}
+        type={toast?.type || "success"}
+        visible={!!toast}
+        onHide={() => setToast(null)}
+      />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* New Entry */}
         <Text style={[styles.heading, { color: colors.text }]}>How are you feeling?</Text>
