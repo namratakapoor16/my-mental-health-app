@@ -212,6 +212,7 @@ export default function LoginScreen() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
+      const appleUserId = credential.user;
 
       console.log("[LoginScreen] Apple Sign-In credential received");
 
@@ -247,7 +248,7 @@ export default function LoginScreen() {
       console.log("[LoginScreen] Decoded JWT keys:", Object.keys(decoded));
       const userId = decoded.user_id || decoded.sub || "";
 
-      await signInWithToken(result.token, userId);
+      await signInWithToken(result.token, userId, appleUserId);
       console.log("[LoginScreen] Apple sign-in complete!");
 
       registerDeviceForNotifications().catch((e) =>
