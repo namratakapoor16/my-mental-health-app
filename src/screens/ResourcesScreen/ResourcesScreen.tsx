@@ -99,6 +99,78 @@ const ResourcesScreen = () => {
     return colorMap[type.toUpperCase()] || '#E5E7EB';
   };
 
+  const renderPersonalizedSummary = () => {
+    if (!ragSummary) return null;
+  
+    // Build a lookup map of title → url from recommendations
+    const titleToUrl: Record<string, string> = {};
+    ragData.recommendations.forEach((rec) => {
+      titleToUrl[rec.title] = rec.url;
+      // Also add lowercase version for fuzzy matching
+      titleToUrl[rec.title.toLowerCase()] = rec.url;
+    });
+
+    const findUrl = (mentionedTitle: string): string | undefined => {
+      // 1. Exact match
+      if (titleToUrl[mentionedTitle]) return titleToUrl[mentionedTitle];
+      
+      // 2. Case-insensitive match
+      const lower = mentionedTitle.toLowerCase();
+      if (titleToUrl[lower]) return titleToUrl[lower];
+      
+      // 3. Partial match — find recommendation whose title contains this text
+      const match = ragData.recommendations.find(rec => 
+        rec.title.toLowerCase().includes(lower) || 
+        lower.includes(rec.title.toLowerCase())
+      );
+      return match?.url;
+    };
+  
+    // Split summary by [[Title]] markers
+    const parts = ragSummary.split(/\[\[(.+?)\]\]/g);
+    // parts alternates between: plain text, title, plain text, title...
+  
+    return (
+      <View style={[styles.summaryBox, { backgroundColor: colors.cardBackground }]}>
+        <Text style={[styles.summaryLabel, { color: colors.text }]}>
+          ✨ Personalized for You
+        </Text>
+        <Text style={[styles.summaryText, { color: colors.subText }]}>
+          {parts.map((part, index) => {
+            // Even indexes are plain text, odd indexes are titles
+            if (index % 2 === 0) {
+              return <Text key={index}>{part}</Text>;
+            }
+  
+            // This is a [[Title]] — find its URL
+            const url = findUrl(part) || findUrl(part.toLowerCase());
+  
+            if (url) {
+              return (
+                <Text
+                  key={index}
+                  style={[styles.summaryLink, { color: colors.primary }]}
+                  onPress={() => Linking.openURL(url)}
+                >
+                  {part}
+                </Text>
+              );
+            }
+  
+            // Title mentioned but no URL match — render as bold non-link
+            return (
+              <Text key={index} style={styles.summaryLinkNoUrl}>
+                {part}
+              </Text>
+            );
+          })}
+        </Text>
+      </View>
+    );
+  };
+
+
+
   const renderCard = ({ item }: { item: any }) => {
     const resourceType = getResourceType(item);
 
@@ -148,10 +220,24 @@ const ResourcesScreen = () => {
           <Text style={[styles.score, { color: colors.subText }]}>
             Relevance: {(displayScore * 100).toFixed(0)}%
           </Text>
+          <View style={styles.cardFooter}>
+          <TouchableOpacity
+            style={styles.openLinkButton}
+            onPress={() => Linking.openURL(item.url)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.openLinkText, { color: colors.primary }]}>
+              Tap to open →
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleOpen(item)}>
+            <Text style={[styles.detailsText, { color: colors.subText }]}>
+              Details
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-          <View style={{ marginTop: 12, width: 80 }}>
-            <Button title="Open" onPress={() => handleOpen(item)} />
-          </View>
+          
         </View>
       </View>
     );
@@ -211,16 +297,11 @@ const ResourcesScreen = () => {
           ) : (
             <View>
               {/* Show RAG personalized summary at the top when available */}
-              {ragSummary && (
-                <View style={[styles.summaryBox, { backgroundColor: colors.cardBackground || "#f0f4ff" }]}>
-                  <Text style={[styles.summaryLabel, { color: colors.text }]}>
-                    ✨ Personalized for You
-                  </Text>
-                  <Text style={[styles.summaryText, { color: colors.subText }]}>
-                    {ragSummary}
-                  </Text>
-                </View>
-              )}
+                {renderPersonalizedSummary()} 
+              <Text style={[styles.disclaimer, { color: colors.subText }]}>
+                  These resources are for informational purposes only. Always consult a 
+                  healthcare professional for medical advice.
+                </Text>
               {resources.map((item, index) => (
                 <View key={`resource-${item.id || `temp-${index}`}`}>
                   {renderCard({ item })}
@@ -555,6 +636,43 @@ const styles = StyleSheet.create({
     fontSize: 15,  // Changed from 14
     lineHeight: 24,  // Changed from 22
   },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E8E8E8',
+  },
+  openLinkButton: {
+    paddingVertical: 4,
+  },
+  openLinkText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  detailsText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  disclaimer: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+
+  summaryLink: {
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
+  summaryLinkNoUrl: {
+    fontWeight: '700',
+  },
+
 
 });
 

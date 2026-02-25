@@ -19,7 +19,7 @@ import { useChatStore } from "../../stores/chatStore";
 import { useAuth } from "../../context/AuthContext";
 import { useSendChatMessage, useFetchChatHistory } from "../../api/hooks";
 import EmojiPicker from "rn-emoji-keyboard";
-import type { ChatMessage } from "../../api/types";
+import type { ChatMessage, Citation } from "../../api/types";
 import Layout from "../../components/UI/layout";
 import { useTheme } from "../../context/ThemeContext";
 import { useCustomAlert } from "../../components/UI/CustomAlert";
@@ -212,6 +212,50 @@ const ChatScreen = () => {
     );
   };
   
+  const renderCitations = (citations?: Citation[]) => {
+    if (!citations || citations.length === 0) return null;
+    
+    return (
+      <View style={styles.citationsContainer}>
+        <Text style={[styles.citationsHeader, { color: colors.subText }]}>
+          Sources:
+        </Text>
+        <Text style={[styles.citationDisclaimer, { color: colors.subText }]}>
+        The following resources provide additional information. 
+        Always consult a healthcare professional for medical advice.
+        </Text>
+        {citations.map((citation, index) => (
+          <TouchableOpacity
+            key={citation.id}
+            onPress={() => Linking.openURL(citation.url)}
+            style={[styles.citationItem, { borderColor: colors.primary + '20' }]}
+          >
+            <View style={styles.citationContent}>
+              <Text style={[styles.citationNumber, { color: colors.primary }]}>
+                [{index + 1}]
+              </Text>
+              <View style={styles.citationText}>
+                <Text style={[styles.citationTitle, { color: colors.text }]} numberOfLines={1}>
+                  {citation.title}
+                </Text>
+                <View style={styles.citationMeta}>
+                  <Text style={[styles.citationType, { color: colors.subText }]}>
+                    {citation.content_type}
+                  </Text>
+                  {citation.relevance_score > 0 && (
+                    <Text style={[styles.citationRelevance, { color: colors.primary }]}>
+                      {Math.round(citation.relevance_score * 100)}% relevant
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+  
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.sender === "user";
@@ -247,6 +291,7 @@ const ChatScreen = () => {
             >
               {item.text}
             </Text>
+            {item.sender === 'ai' && renderCitations(item.citations)}
           </View>
           <Text style={[styles.timestamp, { color: colors.subText }]}>
             {new Date(item.timestamp).toLocaleTimeString([], {
@@ -350,7 +395,7 @@ const ChatScreen = () => {
             style={[disclaimerStyles.continueButton, { backgroundColor: colors.primary }]}
             onPress={() => setDisclaimerAccepted(true)}
           >
-            <Text style={disclaimerStyles.continueButtonText}>I Understand, Continue</Text>
+            <Text style={disclaimerStyles.continueButtonText}>I Understand. Continue</Text>
           </TouchableOpacity>
         </ScrollView>
       </Layout>
@@ -654,6 +699,63 @@ const styles = StyleSheet.create({
   },
   dot3: { 
     opacity: 0.8 
+  },
+  citationsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  citationsHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  citationItem: {
+    marginVertical: 4,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#F8F8F8',
+  },
+  citationContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  citationNumber: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginRight: 8,
+    marginTop: 1,
+  },
+  citationText: {
+    flex: 1,
+  },
+  citationTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  citationMeta: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  citationType: {
+    fontSize: 11,
+    textTransform: 'capitalize',
+  },
+  citationRelevance: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  citationDisclaimer: {
+    fontSize: 10,
+    fontStyle: 'italic',
+    marginBottom: 8,
+    lineHeight: 14,
   },
 });
 

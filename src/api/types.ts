@@ -36,6 +36,14 @@ export interface Token {
 }
 
 
+export interface Citation {
+  id: number;
+  title: string;
+  url: string;
+  content_type: 'article' | 'video' | 'podcast';
+  relevance_score: number;
+  tags: string[];
+}
 
 
 export interface ChatMessage {
@@ -43,6 +51,7 @@ export interface ChatMessage {
   text: string;
   sender: "user" | "ai";
   timestamp: string; // ISO format like "2025-09-09T14:32:00Z"
+  citations?: Citation[];
 }
 
 // =====================
