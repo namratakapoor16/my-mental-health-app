@@ -60,6 +60,8 @@ export const storage = {
         await Promise.all([
           SecureStore.deleteItemAsync(STORAGE_KEYS.TOKEN).catch(() => {}),
           SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID).catch(() => {}),
+          SecureStore.deleteItemAsync('bodhira_apple_user_id').catch(() => {}),
+          SecureStore.deleteItemAsync('bodhira_auth_provider').catch(() => {}),
         ]);
       }
     } catch (error) {

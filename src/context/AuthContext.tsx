@@ -3,9 +3,14 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useCa
 import { useQueryClient } from "@tanstack/react-query";
 import { storage, STORAGE_KEYS } from "../utils/storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { AppState, AppStateStatus } from "react-native";        
+import * as AppleAuthentication from "expo-apple-authentication";
+
 
 import { jwtDecode } from 'jwt-decode';
 
+const APPLE_USER_ID_KEY = 'bodhira_apple_user_id';
+const AUTH_PROVIDER_KEY  = 'bodhira_auth_provider';
 
 
 type AuthContextType = {
@@ -15,7 +20,7 @@ type AuthContextType = {
   error: string | null;
   setToken: (token: string | null, userId?: string | null) => Promise<void>;
   signIn: (email: string, password: string, token: string, userId?: string) => Promise<void>;
-  signInWithToken: (token: string, userId: string) => Promise<void>;
+  signInWithToken: (token: string, userId: string, appleUserId?: string) => Promise<void>;
   signOut: () => Promise<void>;
   restoreComplete: boolean;
 };
@@ -29,6 +34,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [restoreComplete, setRestoreComplete] = useState(false);
+
+
+  // ─── Apple Credential State ──────────────────────────────────────────────
+const appState = useRef(AppState.currentState);
+
+const checkAppleCredentialState = useCallback(async (): Promise<boolean> => {
+  try {
+    const provider = await storage.getItem(AUTH_PROVIDER_KEY);
+    if (provider !== 'apple') return true; // Not an Apple user, skip
+
+    const appleUserId = await storage.getItem(APPLE_USER_ID_KEY);
+    if (!appleUserId) return true; // No stored Apple ID, skip
+
+    const state = await AppleAuthentication.getCredentialStateAsync(appleUserId);
+
+    if (
+      state === AppleAuthentication.AppleAuthenticationCredentialState.REVOKED ||
+      state === AppleAuthentication.AppleAuthenticationCredentialState.NOT_FOUND
+    ) {
+      console.log('[AuthContext] Apple credential invalid, signing out. State:', state);
+      // We call the raw cleanup here, not signOut(), to avoid circular dependency
+      await Promise.all([
+        storage.removeItem(STORAGE_KEYS.TOKEN),
+        storage.removeItem(STORAGE_KEYS.USER_ID),
+        storage.removeItem(APPLE_USER_ID_KEY),
+        storage.removeItem(AUTH_PROVIDER_KEY),
+      ]);
+      setTokenState(null);
+      setUserIdState(null);
+      queryClient.clear();
+      return false;
+    }
+
+    // AUTHORIZED — all good
+    return true;
+  } catch (error) {
+    // If check fails (e.g. device offline), be conservative — don't sign out
+    console.warn('[AuthContext] Apple credential check failed, allowing session:', error);
+    return true;
+  }
+}, [queryClient]);
+
+// Re-check Apple credential whenever app comes back to foreground
+useEffect(() => {
+  const subscription = AppState.addEventListener('change', async (nextState: AppStateStatus) => {
+    const wasBackground = appState.current.match(/inactive|background/);
+    const isNowActive   = nextState === 'active';
+
+    if (wasBackground && isNowActive && token) {
+      console.log('[AuthContext] App foregrounded, checking Apple credential state');
+      await checkAppleCredentialState();
+    }
+    appState.current = nextState;
+  });
+
+  return () => subscription.remove();
+}, [checkAppleCredentialState, token]);
 
   // Add helper function
 const isTokenValid = (token: string): boolean => {
@@ -58,12 +120,21 @@ const isTokenValid = (token: string): boolean => {
         if (mounted) {
           if (savedToken) {
             if (isTokenValid(savedToken)) {
+              // Check Apple credential state before restoring session
+          const provider = await storage.getItem(AUTH_PROVIDER_KEY);
+          if (provider === 'apple') {
+            const appleStillValid = await checkAppleCredentialState();
+            if (!appleStillValid) {
+              console.log('[AuthContext] Apple session revoked, not restoring');
+              return; // checkAppleCredentialState already cleared storage
+            }
+          }
             setTokenState(savedToken);
             setUserIdState(savedUserId);
             console.log('Auth restored:', { hasToken: !!savedToken, userId: savedUserId });
             }
             else {
-                console.log('⚠️ Token expired, clearing...');
+                console.log('Token expired, clearing...');
             await storage.removeItem(STORAGE_KEYS.TOKEN);
             await storage.removeItem(STORAGE_KEYS.USER_ID);
             }
@@ -171,7 +242,7 @@ const isTokenValid = (token: string): boolean => {
 
   // Sign in with token only (for OAuth flows like Google Sign-In)
   const signInWithToken = useCallback(
-    async (tokenFromServer: string, userIdFromServer: string) => {
+    async (tokenFromServer: string, userIdFromServer: string, appleUserId?: string) => {
       try {
         setLoading(true);
 
@@ -185,6 +256,20 @@ const isTokenValid = (token: string): boolean => {
           storage.setItem(STORAGE_KEYS.TOKEN, tokenFromServer),
           storage.setItem(STORAGE_KEYS.USER_ID, userIdFromServer),
         ]);
+
+        if (appleUserId) {
+          await Promise.all([
+            storage.setItem(APPLE_USER_ID_KEY, appleUserId),
+            storage.setItem(AUTH_PROVIDER_KEY, 'apple'),
+          ]);
+          console.log(' Apple user ID saved for credential state checks');
+        } else {
+          // Clear any previous Apple data if signing in via different method
+          await Promise.all([
+            storage.removeItem(APPLE_USER_ID_KEY).catch(() => {}),
+            storage.removeItem(AUTH_PROVIDER_KEY).catch(() => {}),
+          ]);
+        }
 
         setTokenState(tokenFromServer);
         setUserIdState(userIdFromServer);
@@ -233,6 +318,10 @@ const isTokenValid = (token: string): boolean => {
         console.log(' Google cleanup completed with errors:', googleError);
       }
       
+      await Promise.all([
+        storage.removeItem(APPLE_USER_ID_KEY).catch(() => {}),
+        storage.removeItem(AUTH_PROVIDER_KEY).catch(() => {}),
+      ]);
       // Clear stored credentials
       await Promise.all([
         storage.removeItem(STORAGE_KEYS.TOKEN),
