@@ -1,5 +1,5 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { storage, STORAGE_KEYS } from "../utils/storage";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
