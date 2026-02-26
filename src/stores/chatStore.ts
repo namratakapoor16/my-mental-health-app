@@ -1,11 +1,13 @@
 // src/stores/chatStore.ts
 import { create } from "zustand";
+import { Citation } from "../api/types";
 
 export type Message = {
   id: string;
   text: string;
   sender: "user" | "ai";
   timestamp: string;
+  citations?: Citation[] | null;
 };
 
 interface ChatState {

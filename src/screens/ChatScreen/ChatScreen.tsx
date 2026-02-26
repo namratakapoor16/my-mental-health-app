@@ -29,6 +29,7 @@ import { RootStackParamList } from "../../navigation/AppNavigator";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiService } from "../../../services/api";
 import { Menu, MenuOptions, MenuOption, MenuTrigger, MenuProvider } from 'react-native-popup-menu';
+import { useQueryClient } from "@tanstack/react-query";
 
 const { width } = Dimensions.get("window");
 
@@ -41,6 +42,7 @@ const ChatScreen = () => {
   const { colors } = useTheme();
   const { alert, alertComponent } = useCustomAlert();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   // Header height = padding(12*2) + logo(50) + safe area top
   const HEADER_HEIGHT = 74 + insets.top;
   
@@ -166,6 +168,8 @@ const ChatScreen = () => {
     try {
       const botReply = await sendChat({ text: userMessage.text });
       addMessage(botReply);
+      //Invalidate history cache so next time a user visits, it fetches fresh data instead of stale data
+      queryClient.invalidateQueries({queryKey: ["chat", "history"]});
     } catch (error) {
       console.error("Send failed:", error);
     } finally {

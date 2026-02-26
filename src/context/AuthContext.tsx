@@ -38,6 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // ─── Apple Credential State ──────────────────────────────────────────────
 const appState = useRef(AppState.currentState);
+const recentlySignedIn = useRef(false);
+const recentlySignedInTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 const checkAppleCredentialState = useCallback(async (): Promise<boolean> => {
   try {
@@ -83,6 +85,13 @@ useEffect(() => {
     const isNowActive   = nextState === 'active';
 
     if (wasBackground && isNowActive && token) {
+      //Adding for newer IOS where credential propagation takes a bit longer, 
+      // Skip check if we just signed in — iOS 18 credential propagation delay
+      if (recentlySignedIn.current) {
+        console.log('[AuthContext] Skipping credential check — just signed in');
+        appState.current = nextState;
+        return;
+      }
       console.log('[AuthContext] App foregrounded, checking Apple credential state');
       await checkAppleCredentialState();
     }
@@ -250,6 +259,13 @@ const isTokenValid = (token: string): boolean => {
           throw new Error('No token provided from server');
         }
 
+      //Suppress AppState credential check for 5 seconds after sign-in
+      recentlySignedIn.current = true;
+      if (recentlySignedInTimer.current) clearTimeout(recentlySignedInTimer.current);
+      recentlySignedInTimer.current = setTimeout(() => {
+        recentlySignedIn.current = false;
+      }, 5000);  
+
         console.log(' Signing in with token (OAuth):', { userId: userIdFromServer });
 
         await Promise.all([
@@ -345,6 +361,15 @@ const isTokenValid = (token: string): boolean => {
       setLoading(false);
     }
   }, [queryClient]);
+
+  useEffect(() => {
+    return () => {
+      if (recentlySignedInTimer.current) {
+        clearTimeout(recentlySignedInTimer.current);
+      }
+    };
+  }, []);
+
 
   return (
     <AuthContext.Provider
