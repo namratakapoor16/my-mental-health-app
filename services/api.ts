@@ -532,7 +532,8 @@ export const realApiService: ApiService = {
       id: Date.now().toString(),
       text: data.response,
       sender: "ai" as const,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      citations: data.citations ?? null,
     } as ChatMessage;
   },
 

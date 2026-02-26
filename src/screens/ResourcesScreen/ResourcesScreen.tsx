@@ -15,7 +15,8 @@ import {
   StyleSheet,
   Linking,
   ActivityIndicator,
-  TouchableOpacity
+  TouchableOpacity,
+  Platform
 } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../context/AuthContext";
@@ -26,6 +27,8 @@ import Layout from "../../components/UI/layout";
 import { Button } from "../../components/UI/Button";
 import { useFetchContentRec, useFetchContentRecWithRAG } from "../../api/hooks";
 import { ResourceRec, ResourceRecRAG, RAGRecommendation } from "../../api/types";
+
+const isIPad = Platform.OS === 'ios' && Platform.isPad; 
 
 const { width } = Dimensions.get("window");
 
@@ -134,6 +137,10 @@ const ResourcesScreen = () => {
       <View style={[styles.summaryBox, { backgroundColor: colors.cardBackground }]}>
         <Text style={[styles.summaryLabel, { color: colors.text }]}>
           ✨ Personalized for You
+        </Text>
+        <Text style={[styles.disclaimer, { color: colors.subText }]}>
+          These resources are for informational purposes only. Always consult a
+          healthcare professional for medical advice.
         </Text>
         <Text style={[styles.summaryText, { color: colors.subText }]}>
           {parts.map((part, index) => {
@@ -298,10 +305,6 @@ const ResourcesScreen = () => {
             <View>
               {/* Show RAG personalized summary at the top when available */}
                 {renderPersonalizedSummary()} 
-              <Text style={[styles.disclaimer, { color: colors.subText }]}>
-                  These resources are for informational purposes only. Always consult a 
-                  healthcare professional for medical advice.
-                </Text>
               {resources.map((item, index) => (
                 <View key={`resource-${item.id || `temp-${index}`}`}>
                   {renderCard({ item })}
@@ -391,7 +394,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    width: width > 800 ? 900 : "100%",
+    maxWidth: isIPad ? 700 : undefined,
+    width: "100%",
     alignSelf: "center",
     padding: 16,
   },

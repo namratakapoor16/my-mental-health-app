@@ -26,7 +26,7 @@ import { useCustomAlert } from "../../components/UI/CustomAlert";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/AppNavigator";
-import Svg, { Line, Circle, Path } from "react-native-svg";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getApiService } from "../../../services/api";
 import { Menu, MenuOptions, MenuOption, MenuTrigger, MenuProvider } from 'react-native-popup-menu';
 
@@ -40,6 +40,9 @@ const ChatScreen = () => {
   const { mutateAsync: sendChat } = useSendChatMessage(token);
   const { colors } = useTheme();
   const { alert, alertComponent } = useCustomAlert();
+  const insets = useSafeAreaInsets();
+  // Header height = padding(12*2) + logo(50) + safe area top
+  const HEADER_HEIGHT = 74 + insets.top;
   
 
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
@@ -447,7 +450,7 @@ const ChatScreen = () => {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 100}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? HEADER_HEIGHT : 0}
         >
             { /* FlatList takes up all available space */}
           <FlatList

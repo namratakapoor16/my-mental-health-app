@@ -1,10 +1,7 @@
 // src/screens/GuidedActivitiesScreen.tsx
 import React, { useState } from "react";
-import { View, Text, Image, FlatList, Modal, ScrollView, Dimensions, StyleSheet, Platform } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, Image, FlatList, Modal, ScrollView, Dimensions, StyleSheet } from "react-native";
 import { useTheme } from "../../context/ThemeContext";
-
-const isIPad = Platform.OS === 'ios' && Platform.isPad;
 import { useNavigation } from "@react-navigation/native";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -66,27 +63,22 @@ const GuidedActivitiesScreen = () => {
         )}
 
         <Modal visible={modalVisible} animationType="slide">
-          <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-            <ScrollView
-              style={[styles.modalContainer, { backgroundColor: colors.background }]}
-              contentContainerStyle={{ paddingBottom: 40 }}
-            >
-              {selectedActivity && (
-                <>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedActivity.title}</Text>
-                  {selectedActivity.steps?.map((step, index) => (
-                    <View key={index} style={styles.stepContainer}>
-                      <Text style={[styles.stepTitle, { color: colors.text }]}>Step {index + 1}</Text>
-                      <Text style={[styles.stepText, { color: colors.subText }]}>{step}</Text>
-                    </View>
-                  ))}
-                  <View style={{ marginTop: 16 }}>
-                    <Button title="Done" onPress={handleDone} />
+          <ScrollView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+            {selectedActivity && (
+              <>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{selectedActivity.title}</Text>
+                {selectedActivity.steps?.map((step, index) => (
+                  <View key={index} style={styles.stepContainer}>
+                    <Text style={[styles.stepTitle, { color: colors.text }]}>Step {index + 1}</Text>
+                    <Text style={[styles.stepText, { color: colors.subText }]}>{step}</Text>
                   </View>
-                </>
-              )}
-            </ScrollView>
-          </SafeAreaView>
+                ))}
+                <View style={{ marginTop: 16 }}>
+                  <Button title="Done" onPress={handleDone} />
+                </View>
+              </>
+            )}
+          </ScrollView>
         </Modal>
       </View>
     </Layout>
@@ -96,8 +88,7 @@ const GuidedActivitiesScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    maxWidth: isIPad ? 700 : undefined,
-    width: "100%",
+    width: width > 800 ? 900 : "100%",
     alignSelf: "center",
     padding: 10,
   },

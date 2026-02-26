@@ -10,6 +10,7 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Platform
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "../../components/UI/Toast";
@@ -30,6 +31,7 @@ import { SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from "../../constants/sty
 import Svg, { Line, Circle, Path } from "react-native-svg";
 
 const { width } = Dimensions.get("window");
+const isIPad = Platform.OS === 'ios' && Platform.isPad;
 
 const JournalingScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -250,7 +252,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentWrapper: {
-    width: width > 800 ? 900 : "100%",
+    maxWidth: isIPad ? 700 : undefined,
+    width: "100%",
     alignSelf: "center",
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.md,

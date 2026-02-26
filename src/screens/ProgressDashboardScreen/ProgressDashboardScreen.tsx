@@ -1,6 +1,6 @@
 // src/screens/ProgressDashboardScreen/ProgressDashboardScreen.tsx
 import React from 'react';
-import { ScrollView, StyleSheet, View, Text, ActivityIndicator, Dimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, Text, ActivityIndicator, Dimensions, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
@@ -10,6 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useFetchProgressDashboard } from '../../api/hooks';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+const isIPad = Platform.OS === 'ios' && Platform.isPad;
 
 export const ProgressDashboardScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -143,7 +145,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    width: screenWidth > 800 ? 900 : '100%',
+    maxWidth: isIPad ? 700 : undefined,
+    width: '100%',
     alignSelf: 'center',
   },
   loadingContainer: {

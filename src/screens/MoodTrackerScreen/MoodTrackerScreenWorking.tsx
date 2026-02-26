@@ -1,5 +1,5 @@
 // src/screens/MoodTrackerScreen.tsx
-import React from "react";
+import React, {useState} from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator
 
 } from "react-native";
+import Toast from "../../components/UI/Toast";
 import { LineChart } from "react-native-chart-kit";
 import { useQueryClient } from "@tanstack/react-query"; 
 import Layout from "../../components/UI/layout";
@@ -36,6 +37,8 @@ const MoodTrackerScreen = () => {
 
   const [current, setCurrent] = React.useState<number | null>(null);
   const [note, setNote] = React.useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
 
   //const { width } = useWindowDimensions();
 
@@ -47,8 +50,8 @@ const MoodTrackerScreen = () => {
 
   const handleLogMood = async () => {
     if (!current) {
-      alert('Please select a mood first');
-       return;
+      setToast({ message: "Please select a mood first", type: "error" });
+      return;
     }
     try {
       console.log('Logging mood:', {score: current, note});
@@ -60,10 +63,10 @@ const MoodTrackerScreen = () => {
 
       //Invalidate queries to refetch
       queryClient.invalidateQueries({queryKey: ["mood", "history", token] });
-      alert('Mood logged successfully');
+      setToast({ message: "Mood logged successfully!", type: "success" });
     } catch (err) {
       console.error("Error logging mood:", err);
-      alert('Failed to log mood. Please try again');
+      setToast({ message: "Failed to log mood. Please try again", type: "error" });
     }
   };
 
@@ -73,6 +76,12 @@ const MoodTrackerScreen = () => {
 
   return (
     <Layout title="Mood Tracker" onNavigate={(screen) => navigation.navigate(screen as never)}>
+       <Toast
+        message={toast?.message || ""}
+        type={toast?.type || "success"}
+        visible={!!toast}
+        onHide={() => setToast(null)}
+      />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* New Entry */}
         <Text style={[styles.heading, { color: colors.text }]}>How are you feeling?</Text>
@@ -82,10 +91,11 @@ const MoodTrackerScreen = () => {
               key={index}
               style={[
                 styles.emojiButton,
-                current === index + 1 && { 
+                current === index + 1 && styles.emojiButtonSelected, //added this instead for UX testing
+                /*{ 
                   backgroundColor: colors.primary,
                   borderColor: colors.primary,
-                },
+                }, */
               ]}
               onPress={() => setCurrent(index + 1)}
             >
@@ -188,9 +198,10 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   heading: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 12,
+    letterSpacing: -0.3, //changed for UX
   },
   emojiRow: {
     flexDirection: "row",
@@ -199,43 +210,64 @@ const styles = StyleSheet.create({
   },
   emojiButton: {
     padding: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 2,
-    borderColor: "#ccc",
+    borderColor: "#E0E0E0", //lighter gray for UX "#ccc",
     backgroundColor: "#fff",
+    // ADD shadow:
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
+  // ADD this style for selected emoji:
+  emojiButtonSelected: {
+    borderColor:"#5B9EB3",
+    backgroundColor: `"#5B9EB3"10`,  // 10% opacity of primary
+    transform: [{ scale: 1.05 }],  // Slightly bigger when selected
+  },
+
   emoji: {
-    fontSize: 24,
+    fontSize: 28,
   },
   input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    fontSize: 15,
   },
   logButton: {
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: "center",
     marginTop: 8,
+    // ADD shadow:
+    shadowColor: "#5B9EB3",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   logButtonDisabled: {
     opacity: 0.5,
   },
   logButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: 0.5,
   },
   loadingContainer: {
     paddingVertical: 40,
     alignItems: 'center',
   },
   link: {
-    marginTop: 12,
+    marginTop: 16,
     textAlign: "center",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: 15,
+    textDecorationLine: 'underline', //Add for UX to make it look clickable
   },
 });
 

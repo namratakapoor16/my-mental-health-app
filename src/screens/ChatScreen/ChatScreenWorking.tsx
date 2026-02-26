@@ -11,21 +11,27 @@ import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
+  ScrollView,
+  Linking,
+  Alert
 } from "react-native";
 import { useChatStore } from "../../stores/chatStore";
 import { useAuth } from "../../context/AuthContext";
 import { useSendChatMessage, useFetchChatHistory } from "../../api/hooks";
 import EmojiPicker from "rn-emoji-keyboard";
-import type { ChatMessage } from "../../api/types";
+import type { ChatMessage, Citation } from "../../api/types";
 import Layout from "../../components/UI/layout";
 import { useTheme } from "../../context/ThemeContext";
+import { useCustomAlert } from "../../components/UI/CustomAlert";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/AppNavigator";
 import Svg, { Line, Circle, Path } from "react-native-svg";
 import { getApiService } from "../../../services/api";
+import { Menu, MenuOptions, MenuOption, MenuTrigger, MenuProvider } from 'react-native-popup-menu';
 
 const { width } = Dimensions.get("window");
+
 
 const ChatScreen = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -33,7 +39,10 @@ const ChatScreen = () => {
   const { messages, addMessage, setMessages, prependMessages } = useChatStore();
   const { mutateAsync: sendChat } = useSendChatMessage(token);
   const { colors } = useTheme();
+  const { alert, alertComponent } = useCustomAlert();
+  
 
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -161,6 +170,101 @@ const ChatScreen = () => {
     }
   };
 
+  const handleClearChat = async () => {
+    alert(
+      "Clear Chat History",
+      "This will permanently delete all your conversations. This cannot be undone.\n\nContinue?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Clear All",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const api = getApiService();
+              await api.clearChatHistory();
+
+              // Clear local state
+              setMessages([]);
+              setOffset(0);
+              setHasMore(false);
+
+              // Add welcome message back
+              const welcomeMessage: ChatMessage = {
+                id: 'welcome-' + Date.now(),
+                sender: 'ai',
+                text: 'Hi! How are you doing today?',
+                timestamp: new Date().toISOString(),
+              };
+              addMessage(welcomeMessage);
+
+              alert("Success", "Chat history cleared");
+            } catch (error) {
+              console.error('Clear chat error:', error);
+              alert("Error", "Failed to clear chat history. Please try again.");
+            }
+          }
+        }
+      ]
+    );
+  };
+  
+  const renderCitations = (citations?: Citation[]) => {
+    if (!citations || citations.length === 0) return null;
+    
+    return (
+      <View style={styles.citationsContainer}>
+        <Text style={[styles.citationsHeader, { color: colors.subText }]}>
+          Sources:
+        </Text>
+        <Text style={[styles.citationDisclaimer, { color: colors.subText }]}>
+        The following resources provide additional information. 
+        Always consult a healthcare professional for medical advice.
+        </Text>
+        {citations.map((citation, index) => (
+          <TouchableOpacity
+            key={citation.id}
+            onPress={() => Linking.openURL(citation.url)}
+            style={[styles.citationItem, { borderColor: colors.primary + '20' }]}
+          >
+            <View style={styles.citationContent}>
+              <Text style={[styles.citationNumber, { color: colors.primary }]}>
+                [{index + 1}]
+              </Text>
+              <View style={styles.citationText}>
+                <Text style={[styles.citationTitle, { color: colors.text }]} numberOfLines={1}>
+                  {citation.title}
+                </Text>
+                <View style={styles.citationMeta}>
+                  <Text style={[styles.citationType, { color: colors.subText }]}>
+                    {citation.content_type}
+                  </Text>
+                  {citation.relevance_score > 0 && (
+                    <Text style={[styles.citationRelevance, { color: colors.primary }]}>
+                      {Math.round(citation.relevance_score * 100)}% relevant
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+        <TouchableOpacity
+        style={[styles.exploreButton, { borderColor: colors.primary }]}
+        onPress={() => navigation.navigate('resources')}
+      >
+        <Text style={[styles.exploreButtonText, { color: colors.primary }]}>
+          Explore more in Resources tab →
+        </Text>
+      </TouchableOpacity>
+      </View>
+    );
+  };
+  
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.sender === "user";
 
@@ -178,18 +282,24 @@ const ChatScreen = () => {
           <View
             style={[
               styles.bubble,
-              { backgroundColor: isUser ? colors.userBubble : colors.aiBubble },
+              { backgroundColor: isUser ? colors.userBubble : colors.aiBubble,
+                // ADD: Different border radius for each side
+              borderBottomLeftRadius: isUser ? 20 : 6,
+              borderBottomRightRadius: isUser ? 6 : 20,
+               },
             ]}
           >
             <Text
               style={{
                 fontSize: 16,
                 color: colors.text,
-                textAlign: isUser ? 'right' : 'left',
+                lineHeight: 22,
+                //textAlign: isUser ? 'right' : 'left',
               }}
             >
               {item.text}
             </Text>
+            {item.sender === 'ai' && renderCitations(item.citations)}
           </View>
           <Text style={[styles.timestamp, { color: colors.subText }]}>
             {new Date(item.timestamp).toLocaleTimeString([], {
@@ -231,21 +341,115 @@ const ChatScreen = () => {
     );
   };
 
+  if (!disclaimerAccepted) {
+    return (
+      <MenuProvider>
+      <Layout title="Chat" onNavigate={(screen) => navigation.navigate(screen as never)}>
+        <ScrollView
+          style={{ flex: 1, backgroundColor: colors.background }}
+          contentContainerStyle={disclaimerStyles.container}
+        >
+          <Text style={[disclaimerStyles.icon]}>⚠️</Text>
+          <Text style={[disclaimerStyles.heading, { color: colors.text }]}>
+            Important Information
+          </Text>
+
+          <View style={[disclaimerStyles.card, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[disclaimerStyles.cardTitle, { color: colors.text }]}>
+              Not a Replacement for Professional Care
+            </Text>
+            <Text style={[disclaimerStyles.cardText, { color: colors.subText }]}>
+              This is an AI tool. It is not a licensed therapist and is not a replacement for human care. If you are having a hard time, please contact:
+            </Text>
+            <View style={disclaimerStyles.resourceList}>
+              <TouchableOpacity onPress={() => Linking.openURL("tel:911")}>
+                <Text style={[disclaimerStyles.resourceItem, { color: colors.text }]}>
+                  🚨 <Text style={disclaimerStyles.resourceBold}>Emergency Services:</Text> 911
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => Linking.openURL("tel:988")}>
+                <Text style={[disclaimerStyles.resourceItem, { color: colors.text }]}>
+                  📞 <Text style={disclaimerStyles.resourceBold}>Crisis Lifeline:</Text> 988 (Suicide & Crisis Lifeline)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => Linking.openURL("sms:741741?body=HOME")}>
+                <Text style={[disclaimerStyles.resourceItem, { color: colors.text }]}>
+                  💬 <Text style={disclaimerStyles.resourceBold}>Crisis Text Line:</Text> Text HOME to 741741
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={[disclaimerStyles.card, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[disclaimerStyles.cardTitle, { color: colors.text }]}>
+              Your Privacy & Data
+            </Text>
+            <Text style={[disclaimerStyles.cardText, { color: colors.subText }]}>
+              🔒 Your data is encrypted and no personal information is shared with anyone.
+            </Text>
+          </View>
+
+          <View style={[disclaimerStyles.card, { backgroundColor: colors.cardBackground }]}>
+            <Text style={[disclaimerStyles.cardTitle, { color: colors.text }]}>
+              Usage Notice
+            </Text>
+            <Text style={[disclaimerStyles.cardText, { color: colors.subText }]}>
+              This is an AI tool and can make mistakes. You must be 18 years or older to use it.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            testID="chat_disclaimer_continue"
+            style={[disclaimerStyles.continueButton, { backgroundColor: colors.primary }]}
+            onPress={() => setDisclaimerAccepted(true)}
+          >
+            <Text style={disclaimerStyles.continueButtonText}>I Understand. Continue</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </Layout>
+      </MenuProvider>
+    );
+  }
+
   if (isLoadingInitial) {
     return (
+      <MenuProvider>
       <Layout title="Chat" onNavigate={(screen) => navigation.navigate(screen as never)}>
         <View style={[styles.container, styles.centerContent, { backgroundColor: colors.background }]}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.loadingText, { color: colors.text }]}>Loading conversation...</Text>
         </View>
       </Layout>
+      </MenuProvider>
     );
   }
 
   return (
+    <MenuProvider>
     <Layout
       title="Chat"
       onNavigate={(screen) => navigation.navigate(screen as never)}
+      rightComponent={
+        <Menu>
+          <MenuTrigger>
+            <View style={styles.menuButton}>
+              <Text style={[styles.menuDots, { color: colors.text }]}>⋮</Text>
+            </View>
+          </MenuTrigger>
+          <MenuOptions customStyles={{
+            optionsContainer: {
+              borderRadius: 12,
+              marginTop: 40,
+              marginRight: 8,
+              padding: 4,
+            }
+          }}>
+            <MenuOption onSelect={handleClearChat}>
+              <Text style={styles.menuOptionText}>Clear Chat History</Text>
+            </MenuOption>
+          </MenuOptions>
+        </Menu>
+      }
     >
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <KeyboardAvoidingView
@@ -296,6 +500,7 @@ const ChatScreen = () => {
             </TouchableOpacity>
 
             <TextInput
+              testID="chat_input"
               style={[
                 styles.input,
                 { color: colors.text, borderColor: colors.inputBorder },
@@ -315,7 +520,7 @@ const ChatScreen = () => {
               }}
             />
 
-            <TouchableOpacity onPress={handleSend} style={styles.sendBtn}>
+            <TouchableOpacity testID="chat_send" onPress={handleSend} style={styles.sendBtn}>
               <Text style={styles.sendText}>→</Text>
             </TouchableOpacity>
           </View>
@@ -328,6 +533,8 @@ const ChatScreen = () => {
         </KeyboardAvoidingView>
       </View>
     </Layout>
+    {alertComponent}
+    </MenuProvider>
   );
 };
 
@@ -360,32 +567,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   messageContainer: { 
-    marginVertical: 4, 
+    marginVertical: 2, 
     maxWidth: "85%",
     flexShrink: 1
   },
   messageLeft: { 
-    alignSelf: "flex-start" 
+    alignSelf: "flex-start",
+    alignItems: 'flex-start', 
   },
   messageRight: { 
-    alignSelf: "flex-end" 
+    alignSelf: "flex-end",
+    alignItems: 'flex-end', 
   },
   bubble: { 
-    padding: 10, 
-    borderRadius: 16,
-    flexShrink: 1
+    padding: 12, //changed from 10 -> 16 for more padding
+    borderRadius: 20, //changed from 16 -> 20 for more rounded corners
+    flexShrink: 1,
+    //Add shadow for depth:
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+
   },
   timestamp: { 
-    fontSize: 10, 
-    marginTop: 2, 
-    textAlign: "right" 
+    fontSize: 11, // changed from 10 -> 11 for more readability
+    marginTop: 4, // changed from 2 -> 4 for more spacing
+    textAlign: "right",
+    fontWeight: '500', // changed from 'normal' -> 'medium' for more emphasis
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
+    padding: 10, //changed from 10 -> 16 for more padding
     borderTopWidth: 1,
-    paddingBottom: Platform.OS === 'ios' ? 10 : 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 16, //more bottom padding
+    // Removing shadow to fix weirdness in text box, ADD shadow at top:
+    //shadowColor: '#000',
+    //shadowOffset: { width: 0, height: -2 },
+    //shadowOpacity: 0.05,
+    //shadowRadius: 8,
+    //elevation: 4,
   },
   emojiBtn: { 
     padding: 6 
@@ -398,17 +621,48 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
     maxHeight: 120,
     textAlignVertical: 'top',
+    fontSize: 15, //Add explicit font size
+    //backgroundColor: "#FAF8F5",
   },
   sendBtn: {
     backgroundColor: "#007AFF",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
+    /*
+    backgroundColor: "#66B6A3",
+    width: 44,  // ADD: explicit width
+    height: 44,  // ADD: explicit height
+    borderRadius: 22,  // HALF of width/height for perfect circle
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,  // ADD: space from input
+    // ADD shadow to make it pop:
+    shadowColor: "#66B6A3",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4, */
   },
   sendText: { 
     color: "#fff", 
     fontWeight: "bold",
-    fontSize: 18
+    fontSize: 20,
+  },
+  menuButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  menuDots: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    lineHeight: 24,
+  },
+  menuOptionText: {
+    fontSize: 16,
+    padding: 12,
+    color: '#FF6B6B',
+    fontWeight: '600',
   },
   messageRow: {
     flexDirection: 'row',
@@ -454,6 +708,76 @@ const styles = StyleSheet.create({
   dot3: { 
     opacity: 0.8 
   },
+  citationsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E0E0E0',
+  },
+  citationsHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  citationItem: {
+    marginVertical: 4,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#F8F8F8',
+  },
+  citationContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  citationNumber: {
+    fontSize: 12,
+    fontWeight: '700',
+    marginRight: 8,
+    marginTop: 1,
+  },
+  citationText: {
+    flex: 1,
+  },
+  citationTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  citationMeta: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  citationType: {
+    fontSize: 11,
+    textTransform: 'capitalize',
+  },
+  citationRelevance: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  citationDisclaimer: {
+    fontSize: 10,
+    fontStyle: 'italic',
+    marginBottom: 8,
+    lineHeight: 14,
+  },
+  exploreButton: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  exploreButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  
 });
 
 const CuteBotAvatar = ({ size = 40 }: { size?: number }) => {
@@ -484,5 +808,68 @@ const TypingIndicator = () => (
     </View>
   </View>
 );
+
+const disclaimerStyles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    padding: 24,
+    alignItems: "center",
+  },
+  icon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  card: {
+    width: "100%",
+    maxWidth: 500,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  cardText: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  resourceList: {
+    marginTop: 12,
+  },
+  resourceItem: {
+    fontSize: 14,
+    lineHeight: 28,
+  },
+  resourceBold: {
+    fontWeight: "700",
+  },
+  continueButton: {
+    width: "100%",
+    maxWidth: 500,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 32,
+  },
+  continueButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+});
 
 export default ChatScreen;

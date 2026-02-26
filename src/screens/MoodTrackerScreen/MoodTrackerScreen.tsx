@@ -5,10 +5,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
+  KeyboardAvoidingView,
+  ScrollView,
   Dimensions,
   StyleSheet,
-  ActivityIndicator
-
+  ActivityIndicator,
+  Platform
 } from "react-native";
 import Toast from "../../components/UI/Toast";
 import { LineChart } from "react-native-chart-kit";
@@ -27,6 +31,7 @@ import { RootStackParamList } from "../../navigation/AppNavigator";
 const emojiOptions = ["😞", "😐", "😊", "😃", "😁"];
 
 const { width: screenWidth } = Dimensions.get("window");
+const isIPad = Platform.OS === 'ios' && Platform.isPad;
 
 const MoodTrackerScreen = () => {
   const { token } = useAuth();
@@ -82,7 +87,19 @@ const MoodTrackerScreen = () => {
         visible={!!toast}
         onHide={() => setToast(null)}
       />
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* New Entry */}
         <Text style={[styles.heading, { color: colors.text }]}>How are you feeling?</Text>
         <View style={styles.emojiRow}>
@@ -186,14 +203,17 @@ const MoodTrackerScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Layout>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    width: screenWidth > 800 ? 900 : "100%",
+    maxWidth: isIPad ? 700 : undefined,
+    width: "100%",
     alignSelf: "center",
     padding: 10,
   },
@@ -272,4 +292,3 @@ const styles = StyleSheet.create({
 });
 
 export default MoodTrackerScreen;
-

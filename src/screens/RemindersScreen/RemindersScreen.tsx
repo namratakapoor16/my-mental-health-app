@@ -11,6 +11,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -28,6 +29,7 @@ import { SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from "../../constants/sty
 import type { Reminder1 as Reminder, NewReminder } from "../../api/types";
 
 const { width } = Dimensions.get("window");
+const isIPad = Platform.OS === 'ios' && Platform.isPad;
 
 const REMINDER_TYPES = [
   { key: "meditation", label: "Meditation", icon: "🧘" },
@@ -381,8 +383,9 @@ const ReminderScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: width > 800 ? 900 : "100%",
-    alignSelf: "center",
+    maxWidth: isIPad ? 700 : undefined,
+    width: '100%',
+    alignSelf: 'center',
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.md,
   },

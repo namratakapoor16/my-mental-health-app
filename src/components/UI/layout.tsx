@@ -31,6 +31,8 @@ type LayoutProps = {
   rightComponent?: React.ReactNode;
 };
 
+const isIPad = Platform.OS === 'ios' && Platform.isPad;
+
 function Layout({ children, title, onNavigate, rightComponent }: LayoutProps) {
   const { colors, toggleTheme } = useTheme();
   const { width } = useWindowDimensions();
@@ -134,7 +136,9 @@ function Layout({ children, title, onNavigate, rightComponent }: LayoutProps) {
           styles.container,
           {
             backgroundColor: colors.background,
-            width: width > 800 ? 900 : "100%",
+            maxWidth: isIPad ? 700 : undefined,
+            alignSelf: 'center',
+            width: '100%',
           },
         ]}
       >
