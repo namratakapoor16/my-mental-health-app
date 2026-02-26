@@ -111,8 +111,8 @@ export const darkTheme = {
   iconTertiary: "#D4A574",
 
   // Chat bubbles
-  userBubble: "#E8F5E9",
-  aiBubble: "#E5E5EA",
+  userBubble: "#2E4F3E",
+  aiBubble: "#3A3A4A",
 
   // Other
   logoTint: "#7B9AAF",
