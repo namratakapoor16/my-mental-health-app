@@ -10,7 +10,8 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
-  Platform
+  Platform,
+  KeyboardAvoidingView
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "../../components/UI/Toast";
@@ -174,10 +175,15 @@ const JournalingScreen = () => {
         visible={!!toast}
         onHide={() => setToast(null)}
       />
+      <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <ScrollView
         style={[styles.scrollContainer, { backgroundColor: colors.background }]}
         contentContainerStyle={{ paddingBottom: SPACING.lg }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.contentWrapper}>
           {/* Draft Input Section with Avatar */}
@@ -243,6 +249,7 @@ const JournalingScreen = () => {
           {renderInsightsFooter()}
         </View>
       </ScrollView>
+    </KeyboardAvoidingView>
     </Layout>
   );
 };
