@@ -27,7 +27,6 @@
     },
     "ios-simulator": {
       "developmentClient": true,
-      "distribution": "simulator",
       "ios": {
         "simulator": true
       },
