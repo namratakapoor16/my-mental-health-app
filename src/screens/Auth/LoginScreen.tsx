@@ -38,6 +38,7 @@ const GOOGLE_CLIENT_ID_IOS = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS || "";
 const { width } = Dimensions.get("window");
 import { initializeNotifications } from '../../notificationService';
 import { getApiService } from '../../../services/api';
+const isIPad = Platform.OS === 'ios' && Platform.isPad;
 
 
 async function registerDeviceForNotifications() {
@@ -477,17 +478,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: Platform.OS === "web" ? 50 : 20,
-    paddingVertical: Platform.OS === "web" ? 60 : 40,
+    paddingHorizontal: isIPad ? 80 : Platform.OS === "web" ? 50 : 20,
+    paddingVertical: isIPad ? 80 : Platform.OS === "web" ? 60 : 40,
   },
   card: {
-    width: Platform.OS === "web" ? "80%" : "100%",
-    maxWidth: Platform.OS === "web" ? 700 : 600,
+    width: isIPad ? "70%" : Platform.OS === "web" ? "80%" : "100%",
+    maxWidth: isIPad ? "70%" : Platform.OS === "web" ? 700 : 600,
     minHeight: Platform.OS === "web" ? 670 : undefined,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    paddingHorizontal: isIPad ? 48 : 24,
+    paddingVertical: isIPad? 56 : 40,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -497,14 +498,14 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: "center",
     marginBottom: 24,
-    height: 150,
+    height: isIPad ? 180 : 150,
   },
   logo: {
-    width: 140,
-    height: 140,
+    width: isIPad ? 170 : 140,    // LoginScreen (RegisterScreen uses 120, change to 150)
+    height: isIPad ? 170 : 140,
   },
   appTitle: {
-    fontSize: 32,
+    fontSize: isIPad ? 40 : 32,
     fontWeight: "700",
     color: "#2C3E50",
     textAlign: "center",
