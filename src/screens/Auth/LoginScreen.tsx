@@ -260,6 +260,8 @@ export default function LoginScreen() {
       if (
         error.code === "ERR_REQUEST_CANCELED" || //IOS settings redirect interruption
         error.code === "1001" ||
+        error.code === "1000" ||
+        error.message?.includes("The authorization attempt failed for an unknown reason") ||
         error.message?.includes("dismissed")
       )
          { 
@@ -506,7 +508,7 @@ const styles = StyleSheet.create({
     height: isIPad ? 180 : 150,
   },
   logo: {
-    width: isIPad ? 170 : 140,    // LoginScreen (RegisterScreen uses 120, change to 150)
+    width: isIPad ? 170 : 140,   
     height: isIPad ? 170 : 140,
   },
   appTitle: {

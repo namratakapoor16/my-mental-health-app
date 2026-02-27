@@ -572,8 +572,8 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === "web" ? 800 : undefined,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    paddingHorizontal: isIPad ? 56 : 24,   // more breathing room on iPad
-    paddingVertical: isIPad ? 60 : 40,  
+    paddingHorizontal: isIPad ? 40 : 20,   // more breathing room on iPad
+    paddingVertical: isIPad ? 40 : 28,  
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
     height: isIPad ? 180 : 150,
   },
   logo: {
-    width: isIPad ? 170 : 140,    // LoginScreen (RegisterScreen uses 120, change to 150)
+    width: isIPad ? 170 : 140,  
     height: isIPad ? 170 : 140,
   },
   appTitle: {
@@ -621,7 +621,7 @@ const styles = StyleSheet.create({
     color: "#5B9ACD",
   },
   inputSection: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
