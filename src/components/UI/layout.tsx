@@ -136,7 +136,7 @@ function Layout({ children, title, onNavigate, rightComponent }: LayoutProps) {
           styles.container,
           {
             backgroundColor: colors.background,
-            maxWidth: isIPad ? 700 : undefined,
+            maxWidth: isIPad ? 1024 : undefined,
             alignSelf: 'center',
             width: '100%',
           },

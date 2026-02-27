@@ -1,6 +1,6 @@
 // src/screens/HomeScreen.tsx
 import React from "react";
-import { View, Text, Image, StyleSheet, ScrollView, Platform, useWindowDimensions } from "react-native";
+import { View, Text, Image, StyleSheet, ScrollView, Platform, useWindowDimensions, Dimensions } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { useFetchMoodCount, useFetchReminderCount } from "../api/hooks";
 import Layout from "../components/UI/layout";
@@ -12,6 +12,10 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { SPACING, TYPOGRAPHY } from "../constants/styles";
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isIPad = Platform.OS === 'ios' && SCREEN_WIDTH >= 768;
+
+//console.log('Platform.isPad:', Platform.isPad)
 const HomeScreen = () => {
   const { token } = useAuth();
   const { colors } = useTheme();
@@ -20,7 +24,10 @@ const HomeScreen = () => {
   const { data: moodCount = 0, isLoading: moodLoading } = useFetchMoodCount(token);
   const { data: reminderCount = 0, isLoading: reminderLoading } = useFetchReminderCount(token);
   const { width } = useWindowDimensions();
-  const useGrid = Platform.OS === "web" && width > 600;
+  //console.log('DEBUG:', { isIPad, OS: Platform.OS, isPad: Platform.isPad, width });
+
+  const useGrid = (Platform.OS === "web" && width > 600) || isIPad;
+  console.log('isIPad:', isIPad, 'useGrid:', useGrid);
 
   const cards = [
     { key: "chat", title: "Chat", subtitle: "Start a conversation" },
@@ -38,7 +45,7 @@ const HomeScreen = () => {
       <ScrollView
         style={{ flex: 1, backgroundColor: colors.background }}
         contentContainerStyle={{
-          paddingHorizontal: SPACING.md,
+          paddingHorizontal: isIPad ? SPACING.xl : SPACING.md,
           paddingTop: SPACING.md,
           paddingBottom: SPACING.md,
         }}
@@ -64,14 +71,16 @@ const HomeScreen = () => {
               key={item.key}
               title={item.title}
               subtitle={item.subtitle}
+              titleStyle={{fontSize: isIPad? 24 : 18}}
+              subtitleStyle={{ fontSize: isIPad ? 14 : 10 }}
               onPress={() => navigation.navigate(item.key as never)}
               testID={`home_card_${item.key}`}
               titleColor="#FFFFFF"
               subtitleColor="#FFFFFF"
               style={{
                 width: useGrid ? "47%" : "90%",
-                aspectRatio: useGrid ? 2 : 2.2,
-                marginBottom: 16,
+                aspectRatio: isIPad ? 2.8 : useGrid ? 2 : 2.2,
+                marginBottom: isIPad ? 20 : 16,
                 justifyContent: "center",
                 alignItems: "center",
                 backgroundColor: colors.primary,
@@ -90,23 +99,24 @@ const HomeScreen = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   date: {
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: isIPad ? TYPOGRAPHY.sizes.md : TYPOGRAPHY.sizes.sm,
     marginBottom: SPACING.md,
     textAlign: "center",
     fontWeight: '500',  //Add medium weight
   },
   welcome: {
-    fontSize: TYPOGRAPHY.sizes.xl,
+    fontSize: isIPad ? 32 : TYPOGRAPHY.sizes.xl,
     fontWeight: TYPOGRAPHY.weights.bold,
     textAlign: "center",
     marginBottom: SPACING.lg,// Changed from lg -> more space
     letterSpacing: -0.5,  // ADD: Tighter letter spacing for elegance
   },
   logo: {
-    width: 160,
-    height: 160,
+    width: isIPad ? 200 : 160,
+    height: isIPad ? 200 : 160,
     marginBottom: SPACING.lg,
     alignSelf: "center",
   },
@@ -114,6 +124,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    maxWidth: isIPad ? 800 : undefined,   // ← constrains grid width on iPad
+    alignSelf: "center",
+    width: "100%",
   },
   listContainer: {
     alignItems: "center",

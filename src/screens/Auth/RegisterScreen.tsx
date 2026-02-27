@@ -34,7 +34,7 @@ import {
   isErrorWithCode,
   statusCodes,
 } from "@react-native-google-signin/google-signin";
-import jwtDecode from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 
 const GOOGLE_CLIENT_ID_WEB = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB || "";
 const GOOGLE_CLIENT_ID_IOS = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS || "";
@@ -567,13 +567,13 @@ const styles = StyleSheet.create({
     paddingVertical: isIPad ? 60 : Platform.OS === "web" ? 60 : 40,
   },
   card: {
-    width: isIPad ? "72%" : Platform.OS === "web" ? "80%" : "100%",
-    maxWidth: isIPad ? 720 : Platform.OS === "web" ? 700 : 600,
+    width: isIPad ? "82%" : Platform.OS === "web" ? "80%" : "100%",
+    maxWidth: isIPad ? 780 : Platform.OS === "web" ? 700 : 600,
     minHeight: Platform.OS === "web" ? 800 : undefined,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    paddingHorizontal: isIPad ? 48 : 24,   // more breathing room on iPad
-    paddingVertical: isIPad ? 56 : 40,  
+    paddingHorizontal: isIPad ? 56 : 24,   // more breathing room on iPad
+    paddingVertical: isIPad ? 60 : 40,  
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

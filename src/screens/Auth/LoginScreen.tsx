@@ -257,8 +257,13 @@ export default function LoginScreen() {
       );
     } catch (error: any) {
       console.error("[LoginScreen] Apple sign-in error:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      if (error.code === "ERR_REQUEST_CANCELED") {
-        console.log("[LoginScreen] Apple sign-in cancelled by user");
+      if (
+        error.code === "ERR_REQUEST_CANCELED" || //IOS settings redirect interruption
+        error.code === "1001" ||
+        error.message?.includes("dismissed")
+      )
+         { 
+          console.log("[LoginScreen] Apple sign-in flow interrupted, ignoring:", error.code);
       } else {
         Alert.alert("Error", `Apple sign-in failed: ${error?.message || "Unknown error"}`);
       }
@@ -482,13 +487,13 @@ const styles = StyleSheet.create({
     paddingVertical: isIPad ? 80 : Platform.OS === "web" ? 60 : 40,
   },
   card: {
-    width: isIPad ? "70%" : Platform.OS === "web" ? "80%" : "100%",
-    maxWidth: isIPad ? "70%" : Platform.OS === "web" ? 700 : 600,
+    width: isIPad ? "82%" : Platform.OS === "web" ? "80%" : "100%",
+    maxWidth: isIPad ? 780 : Platform.OS === "web" ? 700 : 600,
     minHeight: Platform.OS === "web" ? 670 : undefined,
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
-    paddingHorizontal: isIPad ? 48 : 24,
-    paddingVertical: isIPad? 56 : 40,
+    paddingHorizontal: isIPad ? 56 : 24,
+    paddingVertical: isIPad? 50 : 40,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,

@@ -1,6 +1,6 @@
 // src/components/BottomNav.tsx
 import React from "react";
-import { View, TouchableOpacity, Text, StyleSheet, ScrollView, useWindowDimensions } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet, ScrollView, useWindowDimensions, Platform, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
 import { useNavigationState, useNavigation } from "@react-navigation/native";
@@ -23,6 +23,10 @@ const tabs: { name: NavKeys; label: string; icon: keyof typeof Ionicons.glyphMap
 
 // Minimum width per tab to ensure labels like "Reminders" fit
 const MIN_TAB_WIDTH = 76;
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isIPad = Platform.OS === 'ios' && SCREEN_WIDTH >= 768;
+
 
 const BottomNav: React.FC = () => {
   const { colors } = useTheme();
@@ -59,7 +63,7 @@ const BottomNav: React.FC = () => {
         onPress={() => navigation.navigate(tab.name)}
         accessibilityLabel={`${tab.label} tab`}
       >
-        <Ionicons name={tab.icon} size={22} color={color} />
+        <Ionicons name={tab.icon} size={isIPad ? 28 : 22} color={color} />
         <Text style={[styles.label, { color }]} numberOfLines={1}>
           {tab.label}
         </Text>
@@ -89,17 +93,19 @@ const BottomNav: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+
+const styles =  StyleSheet.create({
   container: {
     flexDirection: "row",
     borderTopWidth: 1,
     borderTopColor: "#ddd",
-    paddingVertical: 8,
+    paddingVertical: isIPad ? 12 : 8,
+    paddingBottom: isIPad ? 16 : 8, 
   },
   outerContainer: {
     borderTopWidth: 1,
     borderTopColor: "#ddd",
-    paddingVertical: 8,
+    paddingVertical: isIPad ? 12 : 8,
   },
   scrollContent: {
     paddingHorizontal: 4,
@@ -107,11 +113,12 @@ const styles = StyleSheet.create({
   button: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 4,
+    paddingVertical: isIPad ? 8 : 4,
   },
   label: {
     fontSize: 11,
     marginTop: 2,
+    fontWeight: isIPad ? '500' : 'normal',
   },
 });
 

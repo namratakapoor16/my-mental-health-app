@@ -11,9 +11,11 @@ export type CardProps = {
   titleColor?: string;
   subtitleColor?: string;
   testID?: string;
+  titleStyle?: object;
+  subtitleStyle?: object;
 };
 
-export const Card: React.FC<CardProps> = ({ title, subtitle, onPress, style, titleColor, subtitleColor, testID }) => {
+export const Card: React.FC<CardProps> = ({ title, subtitle, onPress, style, titleColor, subtitleColor, testID, titleStyle, subtitleStyle }) => {
   const { colors } = useTheme();
   const titleTestId = testID ? `${testID}_title` : undefined;
 
@@ -26,10 +28,10 @@ export const Card: React.FC<CardProps> = ({ title, subtitle, onPress, style, tit
       onPress={onPress}
       style={[styles.card, { backgroundColor: colors.cardBackground }, style]} // <-- apply passed style
     >
-      <Text testID={titleTestId} style={[styles.title, { color: titleColor || colors.text }]}>
+      <Text testID={titleTestId} style={[styles.title, { color: titleColor || colors.text }, titleStyle]}>
         {title}
       </Text>
-      {subtitle && <Text style={[styles.subtitle, { color: subtitleColor || colors.subText }]}>{subtitle}</Text>}
+      {subtitle && <Text style={[styles.subtitle, { color: subtitleColor || colors.subText }, subtitleStyle]}>{subtitle}</Text>}
     </TouchableOpacity>
   );
 };
