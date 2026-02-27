@@ -17,7 +17,7 @@ const isIPad = Platform.OS === 'ios' && SCREEN_WIDTH >= 768;
 
 
 
-//console.log('Platform.isPad:', Platform.isPad)
+
 const HomeScreen = () => {
   const { token } = useAuth();
   const { colors } = useTheme();
@@ -26,10 +26,10 @@ const HomeScreen = () => {
   const { data: moodCount = 0, isLoading: moodLoading } = useFetchMoodCount(token);
   const { data: reminderCount = 0, isLoading: reminderLoading } = useFetchReminderCount(token);
   const { width } = useWindowDimensions();
-  //console.log('DEBUG:', { isIPad, OS: Platform.OS, isPad: Platform.isPad, width });
+  
 
   const useGrid = (Platform.OS === "web" && width > 600) || isIPad;
-  console.log('isIPad:', isIPad, 'useGrid:', useGrid);
+  
 
   
 
@@ -67,9 +67,6 @@ const HomeScreen = () => {
           Welcome, how are you feeling today?
         </Text>
         <Image source={Logo} style={styles.logo} resizeMode="contain" />
-        <Text style={{fontSize: 20, color: 'red'}}>
-        {`width: ${SCREEN_WIDTH} isIPad: ${isIPad}`}
-        </Text>
 
         {/* Cards Grid */}
         <View style={useGrid ? styles.gridContainer : styles.listContainer}>
